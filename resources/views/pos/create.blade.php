@@ -14,15 +14,18 @@
         this.cart.push({ id, name, price });
     },
 
+    removeFromCart(index) {
+        this.cart.splice(index, 1);
+    },
+
     subtotal() {
         return this.cart.reduce((sum, item) => sum + item.price, 0);
     }
 }">
 
+    <!-- Grid Produk -->
     <div class="grid grid-cols-3 gap-4">
-
         @foreach ($products as $product)
-
         <div
             class="border rounded-md p-3 cursor-pointer"
             :class="{ 'ring-2 ring-blue-500': selectedProductId === {{ $product->id }} }"
@@ -34,22 +37,27 @@
                 Rp {{ number_format($product->price) }}
             </p>
         </div>
-
         @endforeach
-
     </div>
 
+    <!-- Ringkasan Keranjang -->
     <div class="mt-4 border-t pt-3">
-
-        <template x-for="item in cart" :key="item.id">
-            <p x-text="item.name + ' - Rp ' + item.price"></p>
+        <template x-for="(item, index) in cart" :key="index">
+            <div class="flex justify-between items-center mb-2">
+                <p x-text="item.name + ' - Rp ' + item.price"></p>
+            
+                <!-- Tombol Hapus -->
+                <button 
+                    @click="removeFromCart(index)" 
+                    class="text-xs bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600">
+                    Hapus
+                </button>
+            </div>
         </template>
 
         <p class="font-semibold mt-2">
-            Subtotal: Rp
-            <span x-text="subtotal()"></span>
+            Subtotal: Rp <span x-text="subtotal()"></span>
         </p>
-
     </div>
 
 </div>
