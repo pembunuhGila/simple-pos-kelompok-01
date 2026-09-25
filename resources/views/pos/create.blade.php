@@ -10,7 +10,6 @@
     cart: [],
     selectedProductId: null,
 
-```
 addToCart(id, name, price) {
     this.cart.push({ id, name, price });
 },
@@ -22,18 +21,16 @@ removeFromCart(index) {
 subtotal() {
     return this.cart.reduce((sum, item) => sum + item.price, 0);
 }
-```
 
 }">
 
-```
 <!-- Grid Produk -->
 <div class="grid grid-cols-3 gap-4">
     @foreach ($products as $product)
     <div
         class="border rounded-md p-3 cursor-pointer"
         :class="{ 'ring-2 ring-blue-500': selectedProductId === {{ $product->id }} }"
-        @click="selectedProductId = {{ $product->id }}; addToCart({{ $product->id }}, '{{ $product->name }}', {{ $product->price }})"
+        @click="selectedProductId = {{ $product->id }}; addToCart({{ $product->id }}, {{ Illuminate\Support\Js::from($product->name) }} , {{ $product->price }})"
     >
         <p class="font-medium">{{ $product->name }}</p>
 
@@ -76,7 +73,6 @@ subtotal() {
     </p>
 
 </div>
-```
 
 </div>
 
