@@ -1,59 +1,22 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Simple POS - Kelompok 01
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+## Ringkasan Pengembangan: Increment 6 (Validasi dan Keamanan Input)
+Pada Increment 6, pengembangan aplikasi Simple POS berfokus pada penerapan validasi input dan peningkatan keamanan aplikasi untuk mencegah manipulasi data transaksi. Pengembangan ini mencakup beberapa hal berikut:
 
-## About Laravel
+- **Perlindungan Mass Assignment:** Penggunaan properti `$fillable` pada model untuk membatasi atribut yang dapat diisi secara massal.
+- **Validasi Berbasis Form Request:** Penggunaan kelas `StoreProductRequest` dan `StoreTransactionRequest` untuk memisahkan proses validasi input dari controller.
+- **Validasi Stok dan Kuantitas Produk:** Pemeriksaan jumlah stok yang tersedia serta penanganan kuantitas produk pada keranjang kasir agar sesuai dengan jumlah pembelian.
+- **Perhitungan Total Transaksi di Server-Side Calculation:** Perhitungan subtotal dan total transaksi menggunakan harga produk dari basis data agar hasil transaksi tidak bergantung pada nilai yang dikirim dari formulir pengguna.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Tantangan Mandiri: Validasi dan Keamanan Input
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Analisis Validasi numeric pada Atribut total
+Validasi menggunakan aturan `numeric` saja tidak cukup untuk mencegah manipulasi total transaksi. Aturan tersebut hanya memastikan bahwa nilai yang diterima berupa angka, tetapi tidak memastikan bahwa nilai tersebut sesuai dengan hasil perhitungan harga produk dan jumlah barang yang dibeli.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Pengguna masih dapat mengubah nilai total yang dikirim melalui formulir, baik menggunakan Browser Developer Tools maupun dengan mengirimkan request secara manual. Sebagai contoh, total transaksi yang seharusnya sebesar Rp72.955 dapat diubah menjadi Rp1. Nilai tersebut tetap dapat lolos validasi `numeric` karena masih berupa angka.
 
-## Learning Laravel
+Oleh karena itu, data dari client-side tidak boleh langsung dipercaya, terutama untuk perhitungan transaksi. Nilai total sebaiknya dihitung ulang di server-side berdasarkan harga produk yang tersimpan di basis data dan jumlah barang yang dibeli.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+Pada aplikasi Simple POS, perhitungan total transaksi dilakukan di dalam `TransactionController::store()`. Server mengambil data produk berdasarkan `product_id`, menggunakan harga produk dari basis data, kemudian menghitung subtotal dengan mengalikan harga produk dan jumlah pembelian (`qty`). Seluruh subtotal dijumlahkan untuk memperoleh total transaksi.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-## Laravel Sponsors
-
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
-
-### Premium Partners
-
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
-
-## License
-
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Dengan demikian, validasi `numeric` saja tidak cukup untuk mencegah manipulasi total transaksi. Total transaksi harus dihitung di sisi server berdasarkan harga produk dari basis data dan jumlah pembelian yang telah divalidasi, bukan menggunakan nilai total yang dikirim oleh pengguna.
