@@ -20,3 +20,53 @@ Oleh karena itu, data dari client-side tidak boleh langsung dipercaya, terutama 
 Pada aplikasi Simple POS, perhitungan total transaksi dilakukan di dalam `TransactionController::store()`. Server mengambil data produk berdasarkan `product_id`, menggunakan harga produk dari basis data, kemudian menghitung subtotal dengan mengalikan harga produk dan jumlah pembelian (`qty`). Seluruh subtotal dijumlahkan untuk memperoleh total transaksi.
 
 Dengan demikian, validasi `numeric` saja tidak cukup untuk mencegah manipulasi total transaksi. Total transaksi harus dihitung di sisi server berdasarkan harga produk dari basis data dan jumlah pembelian yang telah divalidasi, bukan menggunakan nilai total yang dikirim oleh pengguna.
+
+## Skenario Pengujian Manual Autentikasi dan Otorisasi
+
+### 1. Pengujian Admin
+**Langkah:**
+1. Login menggunakan `admin@pos.test` dengan kata sandi `password`.
+2. Buka halaman `/products`.
+3. Buka halaman `/categories`.
+4. Buka halaman `/transactions`.
+
+**Hasil yang diharapkan:**
+- Login berhasil.
+- Halaman produk dan kategori dapat diakses.
+- Halaman transaksi dapat diakses.
+- Menu Produk dan Kategori tampil pada navigasi.
+
+### 2. Pengujian Kasir
+**Langkah:**
+1. Login menggunakan `kasir@pos.test` dengan kata sandi `password`.
+2. Buka halaman `/pos`.
+3. Buka halaman `/transactions`.
+4. Coba akses `/products`.
+
+**Hasil yang diharapkan:**
+- Login berhasil.
+- Halaman kasir dan transaksi dapat diakses.
+- Akses ke halaman produk ditolak dengan status HTTP 403.
+- Menu Produk dan Kategori tidak tampil pada navigasi.
+
+### 3. Pengujian Manager
+**Langkah:**
+1. Login menggunakan `manager@pos.test` dengan kata sandi `password`.
+2. Buka halaman `/transactions`.
+3. Coba akses `/products`.
+
+**Hasil yang diharapkan:**
+- Login berhasil.
+- Halaman transaksi dapat diakses.
+- Akses ke halaman produk ditolak dengan status HTTP 403.
+- Menu Produk dan Kategori tidak tampil pada navigasi.
+
+### 4. Pengujian Halaman Khusus Tamu
+**Langkah:**
+1. Logout dari aplikasi.
+2. Buka `/info`.
+3. Login kembali dan buka `/info`.
+
+**Hasil yang diharapkan:**
+- Pengguna yang belum login dapat membuka halaman informasi.
+- Pengguna yang sudah login diarahkan ke `/pos`.
