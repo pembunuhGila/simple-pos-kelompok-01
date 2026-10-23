@@ -26,4 +26,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('categories', CategoryController::class)->except('show');
         Route::resource('products', ProductController::class)->except(['show', 'destroy']);
     });
+Route::middleware('guest')->get('/info', function () {
+    return response(
+        '<h1>Informasi Simple POS</h1><p>Halaman khusus tamu.</p>'
+    );
+})->name('info');
 });
+
