@@ -42,5 +42,9 @@ Route::middleware('auth')->group(function () {
             ReportController::class,
             'exportExcel'
         ])->name('reports.export.xlsx');
+        Route::get('/reports/export/pdf', [
+            ReportController::class,
+            'exportPdf'
+        ])->name('reports.export.pdf');
     });
 });
