@@ -7,9 +7,12 @@ use App\Models\Transaction;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Illuminate\Http\Response;
 use Maatwebsite\Excel\Facades\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 
 class ReportController extends Controller
@@ -46,6 +49,23 @@ class ReportController extends Controller
             new SalesReportExport($this->filteredQuery($from, $to)),
             'laporan-penjualan.xlsx',
         );
+    }
+    public function exportPdf(Request $request): Response
+    {
+    [$from, $to] = $this->resolveDateRange($request);
+
+    $pdf = Pdf::loadView('reports.pdf', [
+        'totalPenjualan' => $this->filteredQuery($from, $to)->sum('total'),
+        'jumlahTransaksi' => $this->filteredQuery($from, $to)->count(),
+        'transactions' => $this->filteredQuery($from, $to)
+            ->latest()
+            ->limit(50)
+            ->get(),
+        'from' => $from->toDateString(),
+        'to' => $to->toDateString(),
+    ]);
+
+    return $pdf->download('laporan-penjualan.pdf');
     }
     private function resolveDateRange(Request $request): array
     {
