@@ -3,21 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Exports\SalesReportExport;
+use App\Jobs\ProcessProductImport;
 use App\Models\Transaction;
-use App\Models\Product;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
-use Illuminate\Http\Response;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Validator;
-use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
+use Illuminate\View\View;
+use Maatwebsite\Excel\Facades\Excel; 
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Barryvdh\DomPDF\Facade\Pdf;
-
-
-
 
 class ReportController extends Controller
 {
@@ -49,88 +45,38 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->resolveDateRange($request);
         return Excel::download(
-
             new SalesReportExport($this->filteredQuery($from, $to)),
             'laporan-penjualan.xlsx',
         );
     }
     public function exportPdf(Request $request): Response
     {
-    [$from, $to] = $this->resolveDateRange($request);
-
-    $pdf = Pdf::loadView('reports.pdf', [
-        'totalPenjualan' => $this->filteredQuery($from, $to)->sum('total'),
-        'jumlahTransaksi' => $this->filteredQuery($from, $to)->count(),
-        'transactions' => $this->filteredQuery($from, $to)
-            ->latest()
-            ->limit(50)
-            ->get(),
-        'from' => $from->toDateString(),
-        'to' => $to->toDateString(),
-    ]);
-
-    return $pdf->download('laporan-penjualan.pdf');
+        [$from, $to] = $this->resolveDateRange($request);
+        $pdf = Pdf::loadView('reports.pdf', [
+            'totalPenjualan' => $this->filteredQuery($from, $to)->sum('total'),
+            'jumlahTransaksi' => $this->filteredQuery($from, $to)->count(),
+            'transactions' => $this->filteredQuery(
+                $from,
+                $to
+            )->latest()->limit(50)->get(),
+            'from' => $from->toDateString(),
+            'to' => $to->toDateString(),
+        ]);
+        return $pdf->download('laporan-penjualan.pdf');
     }
     public function importForm(): View
     {
-    return view('reports.import');
+        return view('reports.import');
     }
-
     public function import(Request $request): RedirectResponse
     {
-    $request->validate([
-        'csv' => ['required', 'file', 'mimes:csv,txt'],
-    ]);
-
-    $lines = file(
-        $request->file('csv')->getRealPath(),
-        FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES
-    );
-
-    $rows = array_map('str_getcsv', $lines);
-    $header = array_shift($rows);
-
-    $created = 0;
-    $updated = 0;
-
-    foreach ($rows as $row) {
-        if (count($row) !== count($header)) {
-            continue;
-        }
-
-        $validator = Validator::make(
-            array_combine($header, $row),
-            [
-                'name' => ['required', 'string'],
-                'category_id' => ['required', 'exists:categories,id'],
-                'price' => ['required', 'integer', 'min:0'],
-            ]
-        );
-
-        if ($validator->fails()) {
-            continue;
-        }
-
-        $data = $validator->validated();
-
-        $product = Product::updateOrCreate(
-            [
-                'name' => $data['name'],
-                'category_id' => $data['category_id'],
-            ],
-            [
-                'price' => $data['price'],
-            ]
-        );
-
-        $product->wasRecentlyCreated ? $created++ : $updated++;
+        $request->validate([
+            'csv' => ['required', 'file', 'mimes:csv,txt'],
+        ]);
+        $path = $request->file('csv')->store('imports');
+        ProcessProductImport::dispatch($path);
+        return back()->with('success', 'Import sedang diproses di background.');
     }
-
-    return back()->with(
-        'success',
-        "{$created} produk baru, {$updated} diperbarui."
-    );
-}
     private function resolveDateRange(Request $request): array
     {
         $from = $request->date('from')?->startOfDay() ?? now()->startOfMonth();
