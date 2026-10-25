@@ -38,5 +38,9 @@ Route::middleware('auth')->group(function () {
             ReportController::class,
             'exportCsv'
         ])->name('reports.export.csv');
+        Route::get('/reports/export/xlsx', [
+            ReportController::class,
+            'exportExcel'
+        ])->name('reports.export.xlsx');
     });
 });
