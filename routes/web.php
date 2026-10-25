@@ -46,5 +46,9 @@ Route::middleware('auth')->group(function () {
             ReportController::class,
             'exportPdf'
         ])->name('reports.export.pdf');
+        Route::get('/import', [ReportController::class, 'importForm'
+        ])->name('import.create');
+        Route::post('/import', [ReportController::class, 'import'
+        ])->name('import.store');
     });
 });
