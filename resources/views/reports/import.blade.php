@@ -67,6 +67,29 @@
                             Belum ada data import yang gagal.
                         </td>
                     </tr>
+    <h2 class="text-lg font-semibold mt-8 mb-3">
+    Import Menggunakan Laravel Excel
+</h2>
+
+<form method="POST"
+      action="{{ route('import.excel') }}"
+      enctype="multipart/form-data"
+      class="max-w-md">
+    @csrf
+
+    <label class="block mb-3">
+        <span class="text-sm font-medium">File CSV / Excel (.xlsx, .xls)</span>
+        <input type="file"
+               name="csv"
+               accept=".csv,.xlsx,.xls"
+               class="mt-1 block w-full text-sm">
+    </label>
+
+    <button type="submit"
+            class="bg-emerald-700 text-white px-4 py-2 rounded-md text-sm">
+        Import Laravel Excel
+    </button>
+</form>
                 @endforelse
             </tbody>
         </table>
