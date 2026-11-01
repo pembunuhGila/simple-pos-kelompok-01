@@ -7,6 +7,7 @@
         body {
             font-family: DejaVu Sans, sans-serif;
             font-size: 12px;
+            color: #333;
         }
 
         h1 {
@@ -14,15 +15,23 @@
             margin-bottom: 4px;
         }
 
+        h2 {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 24px;
+            margin-bottom: 8px;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 12px;
+            margin-top: 8px;
+            margin-bottom: 16px;
         }
 
         th, td {
             border: 1px solid #999;
-            padding: 4px 8px;
+            padding: 6px 8px;
             text-align: left;
         }
 
@@ -32,6 +41,10 @@
 
         .right {
             text-align: right;
+        }
+
+        .center {
+            text-align: center;
         }
     </style>
 </head>
@@ -46,28 +59,55 @@
         dari {{ $jumlahTransaksi }} transaksi
     </p>
 
-    <p>50 transaksi terbaru pada periode ini:</p>
-
+    <!-- Tabel 50 Transaksi Terbaru -->
+    <p><strong>50 transaksi terbaru pada periode ini:</strong></p>
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Tanggal</th>
-                <th>Kasir</th>
-                <th class="right">Total</th>
+                <th style="width: 10%;">ID</th>
+                <th style="width: 30%;">Tanggal</th>
+                <th style="width: 40%;">Kasir</th>
+                <th class="right" style="width: 20%;">Total</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($transactions as $t)
+            @forelse ($transactions as $t)
                 <tr>
                     <td>{{ $t->id }}</td>
                     <td>{{ $t->created_at->format('Y-m-d H:i') }}</td>
-                    <td>{{ $t->user->name }}</td>
-                    <td class="right">
-                        Rp {{ number_format($t->total) }}
-                    </td>
+                    <td>{{ $t->user?->name ?? '-' }}</td>
+                    <td class="right">Rp {{ number_format($t->total) }}</td>
                 </tr>
-            @endforeach
+            @empty
+                <tr>
+                    <td colspan="4" class="center">Tidak ada transaksi pada periode ini.</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+
+    <!-- Tabel 10 Produk Terlaris (Tugas 4) -->
+    <h2>10 Produk Terlaris</h2>
+    <table>
+        <thead>
+            <tr style="background-color: #f3f4f6;">
+                <th class="center" style="width: 10%;">No.</th>
+                <th style="width: 60%;">Nama Produk</th>
+                <th class="center" style="width: 30%;">Jumlah Terjual</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse ($bestSellingProducts as $index => $item)
+                <tr>
+                    <td class="center">{{ $index + 1 }}</td>
+                    <td>{{ $item->product?->name ?? 'Produk tidak ditemukan' }}</td>
+                    <td class="center">{{ $item->total_terjual }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="3" class="center">Belum ada produk terjual pada periode ini.</td>
+                </tr>
+            @endforelse
         </tbody>
     </table>
 </body>
