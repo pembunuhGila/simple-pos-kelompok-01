@@ -51,4 +51,6 @@ Route::middleware('auth')->group(function () {
         Route::post('/import', [ReportController::class, 'import'
         ])->name('import.store');
     });
-});
+    Route::post('/import/excel', [ReportController::class, 'importExcel'])->name('import.excel');
+
+});    
