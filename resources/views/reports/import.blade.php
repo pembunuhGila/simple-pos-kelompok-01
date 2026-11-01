@@ -16,7 +16,7 @@
     <form method="POST"
           action="{{ route('import.store') }}"
           enctype="multipart/form-data"
-          class="max-w-md">
+          class="max-w-md mb-8">
         @csrf
 
         <label class="block mb-3">
@@ -41,4 +41,34 @@
             Import
         </button>
     </form>
+    <h2 class="text-lg font-semibold mt-8 mb-3">
+        Daftar Baris Import yang Gagal
+    </h2>
+
+    <div class="bg-white rounded-lg shadow overflow-hidden max-w-4xl">
+        <table class="w-full border-collapse border border-slate-200 text-sm">
+            <thead>
+                <tr class="bg-slate-100 text-left">
+                    <th class="border border-slate-200 p-2">Nomor Baris</th>
+                    <th class="border border-slate-200 p-2">File</th>
+                    <th class="border border-slate-200 p-2">Pesan Error</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse ($importErrors ?? [] as $error)
+                    <tr>
+                        <td class="border border-slate-200 p-2 text-center">{{ $error->row_number }}</td>
+                        <td class="border border-slate-200 p-2">{{ $error->file_path }}</td>
+                        <td class="border border-slate-200 p-2 text-red-600">{{ $error->error_message }}</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="3" class="border border-slate-200 p-4 text-center text-slate-500">
+                            Belum ada data import yang gagal.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
 @endsection
