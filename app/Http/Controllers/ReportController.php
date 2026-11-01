@@ -6,6 +6,7 @@ use App\Exports\SalesReportExport;
 use App\Jobs\ProcessProductImport;
 use App\Models\Category;
 use App\Models\Transaction;
+use App\Models\TransactionDetail;
 use App\Models\ImportError;
 use App\Imports\ProductsImport;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -24,25 +25,26 @@ class ReportController extends Controller
     {
         [$from, $to] = $this->resolveDateRange($request);
         $categoryId = $request->input('category_id');
+        
+        // Cukup panggil filteredQuery sekali karena sudah menghandle categoryId
         $query = $this->filteredQuery($from, $to, $categoryId);
-         if ($categoryId) {
-        $query->whereHas('details.product', function ($q) use ($categoryId) {
-            $q->where('category_id', $categoryId);
-        });
-        }
+
         return view('reports.index', [
-            'totalPenjualan' => $query->sum('total'),
-            'jumlahTransaksi' => $query->count(),
+            'totalPenjualan' => (clone $query)->sum('total'),
+            'jumlahTransaksi' => (clone $query)->count(),
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
             'categories' => Category::orderBy('name')->get(),
             'categoryId' => $categoryId,
         ]);
     }
+
     public function exportCsv(Request $request): StreamedResponse
     {
         [$from, $to] = $this->resolveDateRange($request);
-        $query = $this->filteredQuery($from, $to);
+        $categoryId = $request->input('category_id');
+        $query = $this->filteredQuery($from, $to, $categoryId);
+        
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
             fputcsv($out, ['ID', 'Tanggal', 'Kasir', 'Total']);
@@ -52,35 +54,61 @@ class ReportController extends Controller
             fclose($out);
         }, 'laporan-penjualan.csv');
     }
+
     public function exportExcel(Request $request): BinaryFileResponse
     {
         [$from, $to] = $this->resolveDateRange($request);
+        $categoryId = $request->input('category_id');
+        
         return Excel::download(
-            new SalesReportExport($this->filteredQuery($from, $to)),
+            new SalesReportExport($this->filteredQuery($from, $to, $categoryId)),
             'laporan-penjualan.xlsx',
         );
     }
+
     public function exportPdf(Request $request): Response
     {
         [$from, $to] = $this->resolveDateRange($request);
+        $categoryId = $request->input('category_id');
+        $query = $this->filteredQuery($from, $to, $categoryId);
+
+        // Query 10 produk terlaris dengan menyesuaikan filter kategori jika ada
+        $bestSellingProducts = TransactionDetail::query()
+            ->whereHas('transaction', function ($q) use ($from, $to, $categoryId) {
+                $q->whereBetween('created_at', [$from, $to]);
+                if ($categoryId) {
+                    $q->whereHas('details.product', function ($subQ) use ($categoryId) {
+                        $subQ->where('category_id', $categoryId);
+                    });
+                }
+            })
+            ->select('product_id')
+            ->selectRaw('SUM(qty) as total_terjual')
+            ->with('product')
+            ->groupBy('product_id')
+            ->orderByDesc('total_terjual')
+            ->limit(10)
+            ->get();
+
         $pdf = Pdf::loadView('reports.pdf', [
-            'totalPenjualan' => $this->filteredQuery($from, $to)->sum('total'),
-            'jumlahTransaksi' => $this->filteredQuery($from, $to)->count(),
-            'transactions' => $this->filteredQuery(
-                $from,
-                $to
-            )->latest()->limit(50)->get(),
+            'totalPenjualan' => (clone $query)->sum('total'),
+            'jumlahTransaksi' => (clone $query)->count(),
+            'transactions' => (clone $query)->latest()->limit(50)->get(),
+            'bestSellingProducts' => $bestSellingProducts,
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
         ]);
+
         return $pdf->download('laporan-penjualan.pdf');
     }
+
     public function importForm(): View
     {
         return view('reports.import', [
             'importErrors' => ImportError::latest()->get(),
         ]);
     }
+
     public function import(Request $request): RedirectResponse
     {
         $request->validate([
@@ -90,33 +118,36 @@ class ReportController extends Controller
         ProcessProductImport::dispatch($path);
         return back()->with('success', 'Import sedang diproses di background.');
     }
+
     public function importExcel(Request $request): RedirectResponse 
-{
-    $request->validate([
-        'csv' => ['required', 'file', 'mimes:csv,txt,xlsx,xls'],
-    ]);
+    {
+        $request->validate([
+            'csv' => ['required', 'file', 'mimes:csv,txt,xlsx,xls'],
+        ]);
 
-    Excel::import(new ProductsImport, $request->file('csv'));
+        Excel::import(new ProductsImport, $request->file('csv'));
 
-    return back()->with('success', 'Import produk menggunakan Laravel Excel berhasil diproses.');
-}
+        return back()->with('success', 'Import produk menggunakan Laravel Excel berhasil diproses.');
+    }
+
     private function resolveDateRange(Request $request): array
     {
         $from = $request->date('from')?->startOfDay() ?? now()->startOfMonth();
         $to = $request->date('to')?->endOfDay() ?? now()->endOfDay();
         return [$from, $to];
     }
-   private function filteredQuery($from, $to, $categoryId = null): Builder
-{
-    $query = Transaction::with('user')
-        ->whereBetween('created_at', [$from, $to]);
 
-    if ($categoryId) {
-        $query->whereHas('details.product', function ($q) use ($categoryId) {
-            $q->where('category_id', $categoryId);
-        });
+    private function filteredQuery($from, $to, $categoryId = null): Builder
+    {
+        $query = Transaction::with('user')
+            ->whereBetween('created_at', [$from, $to]);
+
+        if ($categoryId) {
+            $query->whereHas('details.product', function ($q) use ($categoryId) {
+                $q->where('category_id', $categoryId);
+            });
+        }
+
+        return $query;
     }
-
-    return $query;
-}
 }
