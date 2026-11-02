@@ -70,3 +70,15 @@ Dengan demikian, validasi `numeric` saja tidak cukup untuk mencegah manipulasi t
 **Hasil yang diharapkan:**
 - Pengguna yang belum login dapat membuka halaman informasi.
 - Pengguna yang sudah login diarahkan ke `/pos`.
+
+## Proses Tambahan yang Layak Menggunakan Queued Job
+
+### Pembuatan Laporan Penjualan PDF
+
+Proses lain pada aplikasi Simple POS yang layak dipindahkan ke queued job adalah pembuatan laporan penjualan dalam format PDF. Proses ini melibatkan pengambilan data transaksi berdasarkan periode tertentu, perhitungan total penjualan, serta penyusunan data ke dalam dokumen PDF.
+
+Apabila jumlah transaksi semakin banyak, proses pembuatan laporan dapat membutuhkan waktu lebih lama dan membuat pengguna harus menunggu hingga file selesai dibuat. Oleh karena itu, proses tersebut lebih baik dijalankan melalui queued job agar permintaan pembuatan laporan dapat diproses di background tanpa menghambat aktivitas pengguna.
+
+Dengan penerapan queued job, aplikasi dapat segera memberikan informasi bahwa permintaan pembuatan laporan telah diterima. Selanjutnya, worker akan memproses data dan menghasilkan file PDF. Setelah proses selesai, pengguna dapat menerima notifikasi atau mengakses file laporan yang telah dibuat.
+
+Penerapan ini dapat meningkatkan responsivitas aplikasi, mengurangi waktu tunggu pengguna, dan membuat pemrosesan laporan lebih terorganisasi, terutama ketika jumlah data transaksi semakin besar.
