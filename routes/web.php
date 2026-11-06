@@ -25,6 +25,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
     
     Route::middleware('role:admin')->group(function () {
+        Route::post('categories/bulk-delete', [CategoryController::class, 'bulkDelete'])->name('categories.bulk-delete');
         Route::resource('categories', CategoryController::class)->except('show');
         Route::resource('products', ProductController::class)->except([
             'show',

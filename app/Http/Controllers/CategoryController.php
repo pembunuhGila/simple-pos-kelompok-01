@@ -27,6 +27,16 @@ class CategoryController extends Controller
         return view('categories.index', compact('categories', 'q', 'sort', 'direction'));
     }
 
+    public function create(): View
+    {
+        return view('categories.create');
+    }
+
+    public function edit(Category $category): View
+    {
+        return view('categories.edit', compact('category'));
+    }
+
     /**
      * Bulk delete — skips any category that still has products, matching the
      * existing single-delete guard, and deletes the rest.
