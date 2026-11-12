@@ -4,7 +4,9 @@ namespace App\Console\Commands;
 
 use App\Models\Product;
 use Illuminate\Console\Command;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 
 class ApiClientDemo extends Command
 {
@@ -29,15 +31,20 @@ class ApiClientDemo extends Command
     {
         $baseUrl = 'http://127.0.0.1:8000';
 
-        // Login ke API
+        // Klien yang baik mengulang hanya error yang memang layak diulang,
+        // dengan jeda yang makin panjang
+        $when = fn ($e) => $e instanceof ConnectionException
+            || in_array($e->response->status(), [429, 502, 503, 504]);
+
+        $backoff = fn (int $attempt) => $attempt * 1000;
+
         $login = Http::acceptJson()->post("{$baseUrl}/api/login", [
             'email' => 'kasir@pos.test',
             'password' => 'password',
         ]);
 
         if ($login->failed()) {
-            $this->error('Login gagal: ' . $login->json('message'));
-
+            $this->error('Login gagal: '.$login->json('message'));
             return self::FAILURE;
         }
 
@@ -45,47 +52,62 @@ class ApiClientDemo extends Command
 
         $this->info("Login berhasil, token: {$token}");
 
-        // Mengambil data produk
         $products = Http::acceptJson()
             ->withToken($token)
+            ->retry(3, $backoff, $when, throw: false)
             ->get("{$baseUrl}/api/products");
 
         if ($products->failed()) {
             $this->error('Token kedaluwarsa/dicabut, atau server sedang bermasalah.');
-
             return self::FAILURE;
         }
 
-        $this->info('Jumlah produk: ' . count($products->json('data')));
+        $this->info('Jumlah produk: '.count($products->json('data')));
 
-        // Mengambil ID produk pertama
         $productId = Product::first()->id;
 
-        // Membuat transaksi
+        $payload = [
+            'items' => [
+                [
+                    'product_id' => $productId,
+                    'qty' => 1
+                ]
+            ]
+        ];
+
+        $key = (string) Str::uuid();
+
         $transaction = Http::acceptJson()
             ->withToken($token)
-            ->post("{$baseUrl}/api/transactions", [
-                'items' => [
-                    [
-                        'product_id' => $productId,
-                        'qty' => 1,
-                    ],
-                ],
-            ]);
+            ->withHeaders(['Idempotency-Key' => $key])
+            ->retry(3, $backoff, $when, throw: false)
+            ->post("{$baseUrl}/api/transactions", $payload);
 
-        // Memeriksa hasil transaksi
         match ($transaction->status()) {
             201 => $this->info(
-                'Transaksi tersimpan: ' . json_encode($transaction->json('data'))
+                'Transaksi tersimpan: '.json_encode($transaction->json('data'))
             ),
             401 => $this->error('Token tidak valid, login ulang.'),
             422 => $this->error(
-                'Input ditolak: ' . $transaction->json('message')
+                'Input ditolak: '.$transaction->json('message')
             ),
             default => $this->error(
-                'Error lain: ' . $transaction->status()
+                'Error lain: '.$transaction->status()
             ),
         };
+
+        // Simulasi retry setelah timeout:
+        // request yang sama dengan key yang sama
+        $retry = Http::acceptJson()
+            ->withToken($token)
+            ->withHeaders(['Idempotency-Key' => $key])
+            ->retry(3, $backoff, $when, throw: false)
+            ->post("{$baseUrl}/api/transactions", $payload);
+
+        $this->info(
+            'Ulang dengan key yang sama: '.$retry->status().
+            ', replayed = '.$retry->header('Idempotent-Replayed')
+        );
 
         return self::SUCCESS;
     }
