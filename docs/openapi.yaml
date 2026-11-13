@@ -1,4 +1,15 @@
 
+# ==============================================================================
+# Catatan Perbandingan Pengujian API: Postman/Insomnia vs cURL
+# Pengujian ketiga endpoint (/api/v1/login, /api/v1/products, dan /api/v1/transactions)
+# telah dicoba menggunakan aplikasi GUI (Postman/Insomnia). Dibandingkan cURL CLI,
+# pengujian lewat Postman jauh lebih nyaman untuk menyimpan Bearer Token secara otomatis,
+# membaca tampilan response JSON yang sudah terformat rapi (syntax highlighting), serta
+# mengirim payload body tanpa perlu pusing memikirkan escaping tanda petik di terminal.
+# Sebaliknya, cURL tetap unggul dari segi kecepatan eksekusi sekali jalan dan kepraktisan
+# untuk kebutuhan script testing otomatis tanpa harus membuka aplikasi GUI yang berat.
+# ==============================================================================
+
 openapi: 3.0.0
 info:
   title: Simple POS API
