@@ -37,9 +37,34 @@ paths:
       summary: Ambil daftar produk
       security:
         - bearerAuth: []
+      parameters:
+        - name: category_id
+          in: query
+          description: Filter berdasarkan ID kategori
+          schema:
+            type: integer
+        - name: q
+          in: query
+          description: Pencarian nama produk (minimal 2 karakter)
+          schema:
+            type: string
+            minLength: 2
+        - name: sort
+          in: query
+          description: Pengurutan data (name, -name, price, -price)
+          schema:
+            type: string
+            enum: [name, -name, price, -price]
+        - name: per_page
+          in: query
+          description: Jumlah data per halaman (1 sampai 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
       responses:
         '200':
-          description: Daftar produk
+          description: Daftar produk berpaginasi
           content:
             application/json:
               schema:
@@ -54,6 +79,22 @@ paths:
                         name: { type: string }
                         price: { type: integer }
                         category: { type: string }
+                  links:
+                    type: object
+                    properties:
+                      first: { type: string }
+                      last: { type: string }
+                      prev: { type: string, nullable: true }
+                      next: { type: string, nullable: true }
+                  meta:
+                    type: object
+                    properties:
+                      current_page: { type: integer }
+                      from: { type: integer }
+                      last_page: { type: integer }
+                      per_page: { type: integer }
+                      to: { type: integer }
+                      total: { type: integer }
         '401':
           description: Token tidak ada atau tidak valid
   /api/transactions:
